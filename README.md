@@ -74,7 +74,7 @@ web site</a>:
    Using *write.table*  
        
 
-[Cookbook](https://github.com/joysn/coursera-GettingandCleaningData/blob/master/cookbook.md)  
+[Cookbook](https://github.com/joysn/R-Programs/blob/master/cookbook.md)  
 
-[The Script File](https://github.com/joysn/coursera-GettingandCleaningData/blob/master/run_analysis.R)  
-[The output file](https://github.com/joysn/coursera-GettingandCleaningData/blob/master/tidyData.txt)  
+[The Script File](https://github.com/joysn/R-Programs/blob/master/run_analysis.R)  
+[The output file](https://github.com/joysn/R-Programs/blob/master/tidyData.txt)  
