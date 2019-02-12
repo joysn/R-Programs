@@ -32,3 +32,49 @@ web site</a>:
 <li><b>Sub_metering_2</b>: energy sub-metering No. 2 (in watt-hour of active energy). It corresponds to the laundry room, containing a washing-machine, a tumble-drier, a refrigerator and a light. </li>
 <li><b>Sub_metering_3</b>: energy sub-metering No. 3 (in watt-hour of active energy). It corresponds to an electric water-heater and an air-conditioner.</li>
 </ol>
+
+
+## Course 3, Week 4:- Peer-graded Assignment: Getting and Cleaning Data Course Project
+
+### Explaination for [run_analysis.R](https://github.com/joysn/coursera-GettingandCleaningData/blob/master/run_analysis.R)
+
+#### Major Steps
+- Step 0: Load Packages   
+       library("data.table")  
+       library("reshape2")  
+
+- Step 1: Download and unzip the dataset -   
+   Using *download.file*  
+   Inzip the file using *unzip*  
+       
+- Step 2: Get the wanted feature list and its labels -  
+   Load *features.txt* and *activity_labels.txt*  
+   Look for *mean|std* from *features.txt*  
+       
+- Step 3: Load Data (TRAIN) -   
+   Load using *read.table* - *X_train.txt, Y_train.txt, subject_train.txt* \[Contains the subjectnum details\]    
+   Merge them using *cbind*  
+
+- Step 4: Load Data (TEST) -   
+   Load using *read.table* - *X_test..txt Y_test.txt, subject_test.txt* \[Contains the subjectnum details\]  
+   Merge them using *cbind*  
+
+- Step 5: Merge TRAIN & TEST -   
+   Using *rbind*  
+       Using ```rbind```  
+- Step 6: Create factors -   
+   Activity and Subject  
+   
+   *factor(final_ds[, "Activity"], levels = activityLabels[["classLabels"]], labels = activityLabels[["activityName"]])*  
+   
+   *as.factor(final_ds[, "SubjectNum"])*  
+
+- Step 7: Create the final dataset file -   
+   
+   Using *write.table*  
+       
+
+[Cookbook](https://github.com/joysn/coursera-GettingandCleaningData/blob/master/cookbook.md)  
+
+[The Script File](https://github.com/joysn/coursera-GettingandCleaningData/blob/master/run_analysis.R)  
+[The output file](https://github.com/joysn/coursera-GettingandCleaningData/blob/master/tidyData.txt)  
