@@ -1,0 +1,239 @@
+---
+title: "Regression Models Course Project"
+author: "Joy SN"
+date: "January 5, 2019"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+# How is MPG affected by Transmission Type (Automatic and Manual)?
+
+## Promblem Summary
+
+Study Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, explored the relationship between a set of variables and miles per gallon (MPG) (outcome). Two questions of importance
+
+"Is an automatic or manual transmission better for MPG"  
+"Quantify the MPG difference between automatic and manual transmissions"
+
+### Exploratory Data Analysis
+Dataset: Motor Trend Car Road Tests https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE}
+# LOAD PACKAGES
+library(reshape2)
+library(ggplot2)
+# DATA SUMMARY
+data("mtcars")
+#str(mtcars)
+data <- mtcars
+```
+
+	 mpg	 Miles/(US) gallon  
+	 cyl	 Number of cylinders  
+	 disp	 Displacement (cu.in.)  
+	 hp	 Gross horsepower  
+	 drat	 Rear axle ratio  
+	 wt	 Weight (1000 lbs)  
+	 qsec	 1/4 mile time  
+	 vs	 Engine (0 = V-shaped, 1 = straight)  
+	 am	 Transmission (0 = automatic, 1 = manual)  
+	 gear	 Number of forward gears  
+	 carb	 Number of carburetors  
+
+The *figure 1*, we see that correlation between different continuos variables. Per the *Figure 1*, MPG is not so strongly related to drat and qsec
+
+### Statistical Inference
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE}
+mean_mpg_auto <- mean(data[data$am==0,]$mpg)
+mean_mpg_manual <- mean(data[data$am==1,]$mpg)
+```
+
+Cars with "manual"" transmission have with mean MPG of `r round(mean_mpg_manual, 1)` miles/gallon
+Cars with "automatic" tranmission have mean MPG of  `r round(mean_mpg_auto, 1)` miles/gallon
+
+```{R echo= FALSE}
+difference_mpg_am <- t.test(data[data$am==1,]$mpg,data[data$am==0,]$mpg)
+# paste0("Lower Range:-", round(difference_mpg_am$conf.int[1],1))
+# paste0("Upper Range:-", round(difference_mpg_am$conf.int[2],1))
+# paste0("P Value:-", round(difference_mpg_am$p.value,4))
+difference_mpg_am
+```
+Cars with manual transmission Average MPG is 24.39231 miles/gallon compared to  17.14737  MPG in automatic transmission.   
+95% CI: `r round(difference_mpg_am$conf.int[1],1)` - `r round(difference_mpg_am$conf.int[2],1)` ,p = `r round(difference_mpg_am$p.value,4)`).
+
+### Model Genration
+We start with a model with all the columns as perdictors and based on different P-values we remove each columns
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE}
+summary(lm(mpg ~ ., data = mtcars))$coefficients
+```
+Since the P value of cyl is very high, we remove it and build another model minus cyl
+```{r echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE, results='hide'}
+dat <- mtcars
+dat <- dat[, names(dat) != "cyl"]
+summary(lm(mpg ~ ., data = dat))$coefficients
+```
+Then we see that the P value of 'vs' is quite high, so we now build another one without 'VS' and so on we remove 'carb', 'gear', 'drat','disp' and 'hp' because of their high P value
+```{r echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE,results='hide'}
+dat <- dat[, names(dat) != "vs"]
+#summary(lm(mpg ~ ., data = dat))$coefficients
+dat <- dat[, names(dat) != "carb"]
+#summary(lm(mpg ~ ., data = dat))$coefficients
+dat <- dat[, names(dat) != "gear"]
+#summary(lm(mpg ~ ., data = dat))$coefficients
+dat <- dat[, names(dat) != "drat"]
+#summary(lm(mpg ~ ., data = dat))$coefficients
+dat <- dat[, names(dat) != "disp"]
+#summary(lm(mpg ~ ., data = dat))$coefficients 
+dat <- dat[, names(dat) != "hp"]
+summary(lm(mpg ~ ., data = dat))$coefficients 
+```
+As the p-value of all the remaining predictors are smaller than $0.05$, we can stop.
+Finally we are leftt with 3 variables - wt, qsec and am  
+- am	 Transmission (0 = automatic, 1 = manual)  
+- mpg	 Miles/(US) gallon  
+- wt	 Weight (1000 lbs)  
+- qsec	 1/4 mile time  
+```{R echo=FALSE}
+dat <- mtcars[, c("mpg", "wt", "qsec", "am")]
+summary(lm(mpg ~ . -1, data = dat))$coefficients 
+fit <- lm(mpg ~ . -1, data = dat)
+```
+
+As the two-sided p-value for the coefficient of `am` is `r summary(fit)$coefficients["am", 4]`, much smaller than 0.05,
+we can reject the hypothesis $H_0$.
+
+```{R echo=FALSE}
+sumCoef <- summary(fit)$coefficients
+intv <- sumCoef["am", 1] + c(-1, 1) * qt(0.975, df = fit$df)*sumCoef["am", 2]
+```
+
+With 95% confidence, we estimate that a the change from automatic to manual transmission results in a  `r intv[1]` to `r intv[2]` increase in miles per gallon for the cars.  
+Looks like the manual transmission is better than automatic transmission for mpg. Is it causal?
+
+
+But there is a caveat.
+Per *Figure 2* , which is a pair plot among different predictors we see a relation ship between transmission (am) and weight.
+Also in *Figure 3*, which is a box plot of, we see there is a strong relation between weight and Transmission
+
+### Final Modelling
+We start with Sequential Testing
+
+1.Model 1 - MPG ~ wt (Weight)
+```{R echo=FALSE}
+fit1 <- lm(mpg ~ wt, data = data)
+summary(fit1)$coefficients
+```
+
+R Squared :- `r round(summary(fit1)$adj.r.squared,2)`  
+SD :- `r round(sd(fit1$residuals),2)`    
+
+2. Model 2 - MPG ~ wt (Weight) + am (Transmission Type)
+Next we add column AM (Transmission type)
+
+```{R echo=FALSE}
+fit2 <- update(fit1, mpg ~ wt + am)
+summary(fit2)$coefficients
+```
+
+R Squared :- `r round(summary(fit2)$adj.r.squared,2)`   
+SD :- `r round(sd(fit2$residuals),2)`    
+We see that the addition of the variable "am"(transmission type) to Model 1 in Model 2 does not change the values much. Thus it is not addition any additional value to explain MPG.
+
+```{R, results = 'hide'}
+anv1<-anova(fit1, fit2)
+```
+
+Using anova, we get  
+RSS Values `r anv1$RSS   `
+P Value 0.9879146
+```{R echo=FALSE, results='hide'}
+anv1$`Pr(>F)`
+```
+  
+  
+The effect that "transmission on "MPG"" is mostly due to its relation to weight which was described above (manual cars
+are significantly lighter than larger cars)
+
+But as seen in *Figure 4*, there appears to be an interaction between weight and type of transmission to explain MPG. There are different different slopes for weight for each type of transmission, with manual transmission showing a greater decrease in MPG as the weight of the car increases.
+
+3. Model 3 - mpg ~ wt * am 
+
+This model includes the  interaction (weight*transmission)
+```{R echo=FALSE}
+fit3 <- update(fit1, mpg ~ wt * am)
+summary(fit3)$coefficients
+anv2<-anova(fit1, fit3)
+anv2
+```
+
+R Squared :- `r round(summary(fit3)$adj.r.squared,2)`  
+RSS Values `r anv2$RSS   `  
+In this final model all coefficients are significant  
+ANOVA shows that there is some inclusion of wt * am term and it reduces RSS.
+  
+For "manual" engine cars, for every unit increase in weight(wt) , there is an average drop of MPG = `r round(abs(summary(fit3)$coefficients[2,1])+abs(abs(summary(fit3)$coefficients[4,1])),2)` miles/gallon
+For "automatic" cars, this fall in MPG is `r round(abs(summary(fit3)$coefficients[2,1]))` miles/gallon.
+
+
+*Figure 5* shows the residual and other plots for this final fit.
+We note that the residuals show no obvious pattern, so it is reasonable to try to fit a linear model to the data.
+Now with all the previous analysis, we can conclude that our linear model is a resonable fit. 
+
+
+## Conclusion/Executive Summary
+
+MPG of Manual engine cars are on an average less than that of automatic engine tarnsmission type cares. This is also due to the fact that "manual" type cars are lighter than "automatic" engine cars. 
+But, for "manual" cars, MPG w.r.t to weight is effected higher (9.08 miles/gallon) than that of "automatic" cars (4 miles/gallon)
+
+
+## Appendix A
+### Fig 1 - Shows the correlation of continuous data
+```{r echo=FALSE, fig.width=5, fig.height=3.4}
+# Fig 1: - Take the continuous data and plot the correlation diagram
+mydata <- mtcars[, c(1,3,4,5,6,7)]
+cormat <- round(cor(mydata),2)
+melted_cormat <- melt(cormat)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + geom_tile()
+```
+
+### Fig 2 - Pair Plot among mpg, wt,qsec and am
+```{r echo=FALSE, fig.width=5, fig.height=5}
+pairs(dat, panel = panel.smooth, main = "mtcars data")
+```
+
+### Fig 3 Wights w.r.t MPG for both types of Transmission Type
+```{r echo=FALSE, fig.width=3, fig.height=3}
+ggplot(mtcars) + 
+    geom_boxplot(aes(factor(am), mpg)) + xlab('Weight') +
+    scale_x_discrete(labels = c('Manual','Automatic'))
+```
+
+### Fig 4 - Shows the Mean wights of both transmission type w.r.t MPG
+```{r echo=FALSE, fig.width=5, fig.height=5}
+mean_mpg_auto <- mean(data[data$am==0,]$mpg)
+mean_mpg_manual <- mean(data[data$am==1,]$mpg)
+
+lmA <- lm(data$mpg[data$am=="0"] ~ data$wt[data$am=="0"])
+lmM <- lm(data$mpg[data$am=="1"] ~ data$wt[data$am=="1"])
+plot(data$wt,data$mpg,pch=19, xlab='Weight lb/1000', ylab='Miles per gallon')
+points(data$wt,data$mpg,pch=19,col=((data$am=="1")*1+1))
+lines(data$wt[data$am=="0"],lmA$fitted,col="black",lwd=3)
+lines(data$wt[data$am=="1"],lmM$fitted,col="blue",lwd=3)
+#points(data$wt,fit3$fitted,col="blue",lwd=2)
+abline(h=mean(data$mpg), v=mean(data$wt))
+abline(h=mean_mpg_manual, col = "red", lty=2)
+abline(h=mean_mpg_auto, lty=2)
+text(5,mean(data$mpg[data$am==1])+1,'Mean MPG in manual')
+text(5,mean(data$mpg[data$am==0])+1,'Mean MPG in automatic')
+```
+
+
+### Fig 5 - Residual and other variations
+```{r echo=FALSE, fig.width=5, fig.height=5}
+par(mfrow = c(2, 2))
+plot(fit3)
+```
