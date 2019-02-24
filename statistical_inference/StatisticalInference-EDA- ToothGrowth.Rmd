@@ -1,0 +1,112 @@
+---
+title: "Statistical Inference - EDA ToothGrowth"
+author: "Joy SN"
+date: "January 3, 2019"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+# Analyzing ToothGrowth data in R 
+Analyzing ToothGrowth dataset for basic exploratory data analysis. The data was explored and checked for different columns values.
+We tried to find some basic relationships between the columns using plots, confidence Intervals for
+
+# Data load and exploratory analysis
+```{R}
+library(datasets)
+library(ggplot2)
+data(ToothGrowth)
+```
+
+1. Explore the data and columns
+
+```{R}
+head(ToothGrowth,2)
+summary(ToothGrowth)
+table(ToothGrowth$supp) # Supplement
+table(ToothGrowth$dose) # Dosage
+```
+
+2. Plot Tooth length vs. Dosage (mg) split by Supplement Type (OJ or VC)
+```{R}
+gg = ggplot(data=ToothGrowth, aes(x=as.factor(dose), y=len, fill=supp))
+gg = gg + geom_bar(stat="identity") + facet_grid(. ~ supp) + xlab("Dose (mg)") +
+    ylab("Tooth length") + guides(fill=guide_legend(title="Supplement type"))
+print(gg)
+```
+
+We can see that
+- There is a positive relationship between Dosage and Tooth length. 
+- In case of OJ Supplement, 0.5 to 1 cause maximum increase, while for VC Supplement, it is quite uniform accross all dose increase
+
+3. Which supplement has more effect?
+```{R}
+p1 <- ggplot(ToothGrowth, aes(x =factor(supp), y = len, fill = factor(supp)))
+p1 + geom_boxplot() + xlab("Dosage") + ylab("Length")
+```
+- The plot shows that length of tooth is greater when supplement OJ is given
+
+4. Correlation between Tooth growth and Does
+```{R}
+cor(ToothGrowth[sapply(ToothGrowth, is.numeric)])
+```
+- It shows a high correlation between Does and Length of Tooth
+
+5. Plot between Different Does and its effect on Length of Tooth
+```{R}
+p1 <- ggplot(ToothGrowth, aes(x =factor(dose), y = len, fill = factor(dose)))
+p1 + geom_boxplot() + xlab("Dosage") + ylab("Length")
+```
+- The plot shows more clearly that as the dosage increases, the length of the tooth increases.
+
+# Confidence intervals and hypothesis tests to compare tooth growth by supp and dose
+
+6. The 95% Confidence Intervals of Tooth Grow
+```{R}
+Interval <- (mean(ToothGrowth$len) + c(-1, 1) * qnorm(0.975) * sd(ToothGrowth$len)/sqrt(length(ToothGrowth$len)))
+Interval
+```
+
+7. T-Test for mean difference by supplement type
+```{R}
+t.test(len~supp, data=ToothGrowth)
+```
+- p-value is not small and the confidence interval contains 0, i.e. we cannot reject null hypothesis. 
+
+8. T-Test for mean difference by dosage level
+```{R}
+dose1 <- subset(ToothGrowth,dose %in% c(0.5,1.0))
+dose2 <- subset(ToothGrowth,dose %in% c(0.5,2.0))
+dose3 <- subset(ToothGrowth,dose %in% c(1.0,2.0))
+
+t.test(len ~dose, data = dose1)
+t.test(len ~dose, data = dose2)
+t.test(len ~dose, data = dose3)
+```
+- Each of the above have very small p-values which means the null hypothesis can be rejected.
+
+8. T-Test of Dosage Level
+```{R}
+dos1 <- subset(ToothGrowth, dose == 0.5)
+dos2 <- subset(ToothGrowth, dose == 1)
+dos3 <- subset(ToothGrowth, dose == 2)
+
+t.test(len~supp, data=dos1) # Small Dosage = 0.5
+t.test(len~supp, data=dos2) # Medium Dosage = 1
+t.test(len~supp, data=dos3) # Big Dosage = 2
+```
+- For Small and Medium dosage, their p-values are small, so we can reject the null hypothesis
+- For Big Dosage, we cannot reject the null hypothesis
+
+# Conclusion
+1. No difference by supplement type i.e. OJ or VC do not have any effect independently on tooth length growth
+2. Dosage levels  have a significant effect on growth of tooth length
+3. For dosage level 0.5 and 1, the OJ Supplement has a higher effect on the length of tooth than the VC Supplement.
+4. For dosage level 2, there are so such difference between the supplements
+
+# Assumption
+1. All samples are IID
+2. It is a truly random sample of the population
+
