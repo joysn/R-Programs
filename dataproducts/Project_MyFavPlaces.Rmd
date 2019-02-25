@@ -1,0 +1,33 @@
+---
+title: "My Favourite Places in my Home Town"
+author: "JoySN"
+date: "January 7, 2019"
+output: html_document
+---
+
+## Problem Statement
+To create a web page using R Markdown that features a map created with Leaflet and host it on either GitHub Pages, RPubs, or NeoCities.
+
+## The Map
+
+This is the map with all my favourite places in my home town. These were the places I visited when I was a child. Now I take my son to these places. Hope you will enjoy this.  
+  
+  
+  
+```{R echo = FALSE}
+library(leaflet)
+```
+```{R warning=FALSE}
+lats<-c(22.6196,22.605130, 22.600128,22.579459,22.572737,22.539310,22.542532)
+longs<-c(88.428913,88.466229,88.472000,88.460122,88.344626,88.395829,88.347134)
+places<-c('My Home','ECO PARK', 'Mothers Wax Meuseum','Snow Park','Millenium Park','Science City','Childrens Meuseum')
+df<-data.frame(latitude=lats, longitude=longs, places=places, placecolor=c("blue","red","brown","green","black","violet","pink") )
+```
+
+```{R }
+df %>% 
+    leaflet() %>% 
+    addTiles() %>%
+    addCircleMarkers(lat=df$latitude, lng=df$longitude, color=df$placecolor, popup = df$places) %>% 
+    addLegend(labels = df$places, colors=df$placecolor)
+```

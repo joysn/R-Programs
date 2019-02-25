@@ -1,0 +1,90 @@
+---
+title: "Plotly Presentation"
+author: "JoySN"
+date: "January 7, 2019"
+output: ioslides_presentation
+---
+
+## Problem Statement
+To create a web page presentation using R Markdown that features a plot created with Plotly and then host the webpage on either GitHub Pages, RPubs, or NeoCities. 
+The webpage must contain the date that you created the document, and it must contain a plot created with Plotly.
+
+## Solution
+We have plotted 3 plots  
+1. Simple plot using Diamond Dataset  
+2. Another plot also Using Diamond Dataset  
+3. Using MPG Dataset  
+
+```{R echo = FALSE, warning=FALSE, message=FALSE,results='hide'}
+library(plotly)
+library(tidyr)
+library(dplyr)
+data("diamonds")
+```
+
+## The Plot - 1
+
+This plot shows a histogram of different "cut" of diamonds in the dataset. Y axis shows number of such type of diomond
+```{R echo=FALSE, warning=FALSE, message=FALSE}
+d <- diamonds[sample(nrow(diamonds), 1000), ]
+plot_ly(d,x = ~cut)
+```
+
+## The Plot - 2
+
+This plot uses diomond dataset. We sample 1000 rows from it and plot a scatter plot with 
+- x axis = Carat
+- y axis = Price
+- Categorise based on "cut"
+- And size depends on the carat size
+
+```{R eval=FALSE,warning=FALSE, message=FALSE}  
+mycolors = c('red','blue','green','brown','cyan')
+plot_ly(d, y = ~price, x = ~carat,color = ~factor(cut), 
+        colors = mycolors, 
+        text = ~paste("Price: ", price, '$<br>Cut:', cut)
+        ,mode = 'markers',marker = list(size = ~carat*5, opacity = 0.5)
+        )
+```
+
+
+
+## The Plot - 2 - Continued
+
+
+```{R echo=FALSE, warning=FALSE, message=FALSE}  
+mycolors = c('red','blue','green','brown','cyan')
+plot_ly(d, y = ~price, x = ~carat,color = ~factor(cut), 
+        colors = mycolors, 
+        text = ~paste("Price: ", price, '$<br>Cut:', cut)
+        ,mode = 'markers',marker = list(size = ~carat*5, opacity = 0.5)
+        )
+```
+
+## The Plot - 3
+
+This is the code for generating a bubble plot from mpg data with x-axis is weight of car, y-axis is "mpg" , size of bubble shows cylinder size and colored based on the type of engine - 0:Manual, 1:Autoomatic
+
+```{R eval=FALSE, wwarning=FALSE, message=FALSE}
+data("mtcars")
+d <- mtcars
+mycolors = c('red','blue')
+plot_ly(d,y = ~mpg,x = ~wt, color = ~factor(am),
+        text = ~paste("Cylinder: ",cyl),
+        colors = mycolors, mode = 'markers',marker = list(size = ~cyl*3, opacity = 0.5))
+```
+
+## The Plot - 3 - Continued
+
+```{R echo=FALSE, warining=FALSE, message=FALSE}
+data("mtcars")
+d <- mtcars
+mycolors = c('red','blue')
+plot_ly(d,y = ~mpg,x = ~wt, color = ~factor(am),
+        text = ~paste("Cylinder: ",cyl),
+        colors = mycolors, mode = 'markers',marker = list(size = ~cyl*3, opacity = 0.5))
+```
+
+
+
+## Thank you

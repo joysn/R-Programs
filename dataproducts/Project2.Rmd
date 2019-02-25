@@ -1,0 +1,41 @@
+---
+title: "My Plot Using Plotly"
+author: "Joy SN"
+date: "January 7, 2019"
+output: html_document
+---
+
+## Problem Statement
+Create a web page presentation using R Markdown that features a plot created with Plotly. Host your webpage on either GitHub Pages, RPubs, or NeoCities. Your webpage must contain the date that you created the document, and it must contain a plot created with Plotly. We would love to see you show off your creativity!
+To create a web page using R Markdown that features a map created with Leaflet and host it on either GitHub Pages, RPubs, or NeoCities.
+
+## The Map
+
+This is the map with all my favourite places in my home town. These were the places I visited when I was a child. Now I take my son to these places. Hope you will enjoy this.  
+  
+```{R}  
+library(plotly)
+library(tidyr)
+library(dplyr)
+data("diamonds")
+d <- diamonds[sample(nrow(diamonds), 1000), ]
+mycolors = c('red','blue','green','brown','cyan')
+#plot_ly(d,x = ~cut)
+#plot_ly(d, y = ~price, x = ~carat,color = ~factor(cut), size = ~carat,colors = mycolors, text = ~paste("Price: ", price, '$<br>Cut:', cut))
+
+plot_ly(d, y = ~price, x = ~carat,color = ~factor(cut), 
+        colors = mycolors, 
+        text = ~paste("Price: ", price, '$<br>Cut:', cut)
+        ,mode = 'markers',marker = list(size = ~carat*5, opacity = 0.5)
+        )
+```
+
+```{R}
+data("mtcars")
+d <- mtcars
+mycolors = c('red','blue')
+#d <- rename(d, c("0" = "Automatic", "1" = "Manual"))
+plot_ly(d,y = ~mpg,x = ~wt, color = ~factor(am),
+        text = ~paste("Cylinder: ",cyl),
+        colors = 'Paired', mode = 'markers',marker = list(size = ~cyl*3, opacity = 0.5))
+```

@@ -1,0 +1,55 @@
+Presentation for my Shiny Application - Predict Diamond Price
+========================================================
+author:  Joy SN
+date: 7th Jan 2019
+autosize: true
+
+DataSet and Inputs
+========================================================
+Datamond Dataset is used
+Inputs
+- Number of data to be sampled from the dataset (Through a slider)
+- Seed to be used for the same (Through a text box)
+
+```{r echo=FALSE}
+library(ggplot2)
+diamonds <- diamonds[sample(nrow(diamonds), 500), ]
+```
+
+The prediction Model
+========================================================
+A linear Model is used to predict the Diamond Price based on the "number of data sampled from the dataset" and the "seed" used
+```{r}
+model <- lm(price ~ carat, data = diamonds)
+```
+
+```{r, echo=FALSE}
+plot(diamonds$carat, diamonds$price, xlab = "Carat",
+             ylab = "Price", main = "Price Vs Carat",
+             cex = 1.5, pch = 19, bty = "n")
+abline(model, col = "blue", lwd = 2)
+```
+
+Prediction
+========================================================
+Model Coeffeicients
+```{R echo = FALSE}
+coef(model)
+```
+We predict the diomond price of various "carats" of diaomonds
+
+```{r, echo=TRUE}
+price_of_4_carat_diomond <- round(coef(model)['(Intercept)'] + coef(model)['carat']*4,2)
+paste("Price of 4 carat diomond is ",price_of_4_carat_diomond, " $")
+```
+
+
+Thank You 
+========================================================
+
+## Location of Shiny App and Code  
+
+The application is running on https://snandan.shinyapps.io/MyFirstShinyApp/  
+
+ui.R, and Server.R Code in my github repository (https://github.com/joysn/shinyapp_assignment)
+  
