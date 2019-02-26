@@ -1,0 +1,243 @@
+---
+title: 'Data Science Capstone Project: Milestone Report'
+author: "Joy SN"
+date: "January 18, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction 
+The goal of this project is just to display that I have gott with the data and that I am on track to create your prediction algorithm. It should also explain the  smy exploratory analysis of the data.
+
+The data is from https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip
+
+3 Major Parts
+1.Read and Sampling of Data
+2. Cleaning and creating corpus of data
+3. Creating NGrams
+
+We analyse them using some graphs
+
+## Reading and sampling input data
+In this section, the file are readed and a sample is selected and save to avoid reading large files all the executions. 
+
+```{r, echo=FALSE, warning=FALSE}
+suppressMessages(library(ggplot2))
+suppressMessages(library(NLP))
+library(tm)
+library(SnowballC)
+library(stringi)
+library(RColorBrewer)
+library(wordcloud)
+library(RWeka)
+library(slam)
+```
+
+There are data for 4 languages - English (US), Finish, Russian, and From Denmark
+We are using only English Data.
+The sources are Blogs, Twitter and News Item
+
+Size of the 3 Files - Blogs, News and Twitter
+```{r, echo=FALSE, warning=FALSE,tidy = TRUE}
+us_blogs_file <- "./final/en_US/en_US.blogs.txt"
+us_news_file  <- "final/en_US/en_US.news.txt"
+us_twitter_file <-  "final/en_US/en_US.twitter.txt"
+
+paste0("US_blog file Size ",round(file.size(us_blogs_file)/1024/1024,2), " Mb")
+paste0("US_news file Size ",round(file.size(us_news_file)/1024/1024,2), " Mb")
+paste0("US_twitter file Size ",round(file.size(us_twitter_file)/1024/1024,2), " Mb")
+```
+
+File Statistics of the 3 files - Blogs, News and Twitter
+```{r, echo=FALSE, warning=FALSE,tidy = TRUE}
+fn_con=file(us_blogs_file,open="r")
+lines<-readLines(fn_con)
+stri_stats_general(lines)
+close(fn_con)
+fn_con=file(us_blogs_file,open="r")
+lines<-readLines(fn_con)
+stri_stats_general(lines)
+close(fn_con)
+fn_con=file(us_blogs_file,open="r")
+lines<-readLines(fn_con)
+stri_stats_general(lines)
+close(fn_con)
+```
+
+Since the data are huge, we will sample the data (reading block chunks of 3000) and read only 5% of data
+Also, we store them into a new file and do not re-create them again
+
+```{r, echo=TRUE, warning=FALSE}
+set.seed(190130)
+SampleFile<-function(fn) {
+    paste("Reading 5% sample of file ",fn)
+    fn_con=file(fn,open="r")
+    DataFinal<-NULL
+    LineChunk=3000
+    longmaxline=0;
+    while ( TRUE ) {
+         line = readLines(fn_con, n = LineChunk,skipNul=TRUE)
+         if ( length(line) == 0 ) {
+             break
+         }
+         if(sample(1:20,1)==5) 
+         { 
+             DataFinal<-c(DataFinal,line)
+         }
+    }
+    close(fn_con)
+    return(DataFinal)
+}
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Create the trim_data.txt once so that everytime it is not created
+DataFinalFile="trim_data.txt"
+if(!file.exists(DataFinalFile)){
+    us_blogs <- SampleFile("final/en_US/en_US.blogs.txt")
+    us_news  <- SampleFile("final/en_US/en_US.news.txt")
+    us_twitter  <- SampleFile("final/en_US/en_US.twitter.txt")
+    DataFinal=c(us_blogs,us_news, us_twitter)
+    writeLines(DataFinal, "trim_data.txt")
+} else {
+    DataFinal<-readLines(DataFinalFile, encoding = "UTF-8", skipNul=TRUE)
+}
+```
+
+Details of the sample file generated
+```{r, echo=FALSE, warning=FALSE,tidy=TRUE}
+print("General statistics Of Sampled Data")
+stri_stats_general(DataFinal)
+```
+
+## Cleaning and creating corpus of data
+
+```{r, echo=FALSE, warning=FALSE}
+DataSample = sample(DataFinal,5000, replace = FALSE)
+```
+### Corpus Creation
+```{r, echo=TRUE, warning=FALSE}
+CleanData <- VCorpus(VectorSource(DataSample))
+```
+### Data Cleanup 
+
+1. Remove white space
+2. Remove Punctuation 
+3. Lower case 
+4. Remove Numbers stop words and URLs 
+5. Remove bad words
+```{r, echo=TRUE, warning=FALSE}
+CleanData <- tm_map(CleanData, content_transformer(tolower))
+CleanData <- tm_map(CleanData, content_transformer(removePunctuation))
+CleanData <- tm_map(CleanData, stripWhitespace)
+CleanData <- tm_map(CleanData, removeWords, stopwords("english"))
+CleanData <- tm_map(CleanData, removeNumbers)
+removeURL <- function(x) gsub("http[[:alnum:]]*", "", x)
+CleanData <- tm_map(CleanData,  content_transformer(removeURL))
+profaneWords <- read.table("./bad-words_list.txt", header = FALSE)
+CleanData <- tm_map(CleanData, removeWords, unlist(profaneWords))
+```
+
+## Creating NGrams
+
+1. Create Tokenizer - Use Weka Package
+```{r, echo=TRUE, warning=FALSE,tidy=TRUE, results='hide'}
+# Weka Package - Thank you. Creating 2,3 Tokens
+BGTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+TGTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
+```
+
+2.Create the Matrices - Unigram, BiGram, TriGram
+```{r, echo=TRUE, warning=FALSE,results='hide'}
+# Unigram
+DTMatrix<-DocumentTermMatrix(CleanData)
+DTMatrixmatUni<-as.matrix(DTMatrix)
+Ufreq<-colSums(DTMatrixmatUni)
+Ufreq<-sort(Ufreq,decreasing = TRUE)
+
+#BiGram
+DTMatrixBG <- DocumentTermMatrix(CleanData, control = list(tokenize = BGTokenizer, stemming = TRUE))
+DTMatrixBGMatrix<-as.matrix(DTMatrixBG)
+BGFreq<-colSums(DTMatrixBGMatrix)
+BGFreq<-sort(BGFreq,decreasing = TRUE)
+
+#TriGram
+DTMatrixTG <- DocumentTermMatrix(CleanData, control = list(tokenize = TGTokenizer, stemming = TRUE))
+DTMatrixTGMatrix<-as.matrix(DTMatrixTG)
+TGFreq<-colSums(DTMatrixTGMatrix)
+TGFreq<-sort(TGFreq,decreasing = TRUE)
+```
+
+## Plots
+
+### World Cloud - Thank you worldcloud
+1. Top Single Words
+```{r, echo=FALSE, warning=FALSE, results='hide'}
+words<-names(Ufreq)
+wordcloud(words[1:100],Ufreq[1:100],random.order = F,random.color = F,colors = brewer.pal(9,"RdPu"))
+```
+2. Top BiGrams
+```{r, echo=FALSE, warning=FALSE,results='hide'}
+words_bigram<-names(BGFreq)
+wordcloud(words_bigram[1:100],BGFreq[1:100],random.order = F,random.color = F,          colors = brewer.pal(9,"BuGn"))
+```
+3. Top TriGrams
+```{r, echo=FALSE, warning=FALSE,results='hide'}
+words_trigram<-names(TGFreq)
+wordcloud(words_trigram[1:100],TGFreq[1:100],random.order = F,random.color = F,colors = brewer.pal(9,"OrRd"))
+```
+
+### 25 most frequent 1-2-3 gram words
+```{r, echo=FALSE, warning=FALSE,tidy=TRUE}
+UDf <- head(data.frame(terms=names(Ufreq), freq=Ufreq),n=25) 
+BGDf <- head(data.frame(terms=names(BGFreq), freq=BGFreq),n=25)
+TGDf <- head(data.frame(terms=names(TGFreq), freq=TGFreq),n=25)
+```
+
+1. Uni Gram
+```{r, echo=FALSE, warning=FALSE,tidy=TRUE}
+plot_unigram  <-ggplot(UDf,aes(terms,freq))   
+plot_unigram  <- plot_unigram  + geom_bar(fill="white",colour=UDf$freq,stat="identity") + scale_x_discrete(limits=UDf$terms)
+plot_unigram  <- plot_unigram  + theme(axis.text.x=element_text(angle=45, hjust=1))  
+plot_unigram  <- plot_unigram  + labs(x = "Words", y="Frequency", title="25 most frequent 1-gram Words")
+plot_unigram  
+```
+2. Bi-Gram
+```{r, echo=FALSE, warning=FALSE,tidy=TRUE}
+plot_bigram <-ggplot(BGDf,aes(terms, freq))   
+plot_bigram <-plot_bigram + geom_bar(fill="white", colour=BGDf$freq,stat="identity") + scale_x_discrete(limits=BGDf$terms)
+plot_bigram <- plot_bigram + theme(axis.text.x=element_text(angle=45, hjust=1))  
+plot_bigram<- plot_bigram+ labs(x = "Words", y="Frequency", title="25 most frequent 2-gram words")
+plot_bigram
+```
+3. Tri-Gram
+```{r, echo=FALSE, warning=FALSE,tidy=TRUE}
+plot_trigram <-ggplot(TGDf,aes(terms, freq))   
+plot_trigram <- plot_trigram + geom_bar(fill="white",colour=TGDf$freq,stat="identity") + scale_x_discrete(limits=TGDf$terms)
+plot_trigram <- plot_trigram + theme(axis.text.x=element_text(angle=45, hjust=1))  
+plot_trigram <- plot_trigram + labs(x = "Words", y="Frequency", title="25 most frequent 3-gram words")
+plot_trigram
+```
+
+### Histogram
+The dsitribution is skewed and it is expected
+```{r, echo=FALSE, warning=FALSE,tidy=TRUE}
+unigram_freq <- rowapply_simple_triplet_matrix(DTMatrix,sum)
+bigram_freq <- rowapply_simple_triplet_matrix(DTMatrixBG,sum)
+trigram_freq <- rowapply_simple_triplet_matrix(DTMatrixTG,sum)
+par(mfrow = c(1,3), oma=c(0,0,3,0))
+hist(unigram_freq, breaks = 50, main = 'Uni-Gram', xlab='Uni-Gram')
+hist(bigram_freq, breaks = 50, main = 'Bi-Gram', xlab='Bi-Gram')
+hist(trigram_freq, breaks = 50, main = 'Tri-Gram', xlab='Tri-Gram')
+title("1-2-3 Gram Histogram",outer=T)
+```
+
+## Conclusions
+
+Since the file sizes are huge and the application needs to be used in small devices as well, we needed to sample data from the corpus. That reduced the CPU, Memory as well as disk requirement. We have successfully build the 1,2 and 3grams. 
+
+## Next steps
+We need to evaluate the performance of this Ngrams. Also use the Ngrams to build a predictive algorithm for writing a sentence.
