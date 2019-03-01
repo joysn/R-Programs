@@ -1,0 +1,167 @@
+---
+title: "Analysis of the Economic and Life Losses and Damages Due to different US Weather Events"
+author: "Joy SN"
+date: "02/02/2019"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+## 1: Synopsis
+The goal of the assignment is to explore the NOAA Storm Database and find out how different events effects the life and econmoy of US.
+The events in the database start in the year 1950 and end in November 2011. 
+
+The following analysis investigates which types of events are effects most on
+1. Lift (injuries and fatalities) 
+2. Economoy (Property and Crop)
+
+Information on the Data: [Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
+National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
+
+## Data Processing
+1. Data Download
+
+```{R}
+my_path <- getwd()
+remote_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+downloaded_zip_file = "StormData.csv.bz2"
+download.file(remote_url, file.path(my_path, downloaded_zip_file))
+```
+
+2. Data Load and Data Details
+```{r}
+my_path <- getwd()
+StormData <- read.csv(file.path(my_path, "StormData.csv.bz2"),header = TRUE, sep=",")
+str(StormData)
+head(StormData,2)
+```
+
+3. Explore the Event Types and Propery and Crop Expense Types
+```{R}
+summary(StormData$EVTYPE)
+head(unique(StormData$PROPDMGEXP))
+head(unique(StormData$CROPDMGEXP))
+```
+
+4.Map property damage alphanumeric exponents to numeric values.
+```{R}
+propDmgKey <-  c("\"\"" = 10^0,
+                 "-" = 10^0, 
+                 "+" = 10^0,
+                 "0" = 10^0,
+                 "1" = 10^1,
+                 "2" = 10^2,
+                 "3" = 10^3,
+                 "4" = 10^4,
+                 "5" = 10^5,
+                 "6" = 10^6,
+                 "7" = 10^7,
+                 "8" = 10^8,
+                 "9" = 10^9,
+                 "H" = 10^2,
+                 "K" = 10^3,
+                 "M" = 10^6,
+                 "B" = 10^9)
+```
+5. Map crop damage alphanumeric exponents to numeric values
+```{R}
+cropDmgKey <-  c("\"\"" = 10^0,
+                 "?" = 10^0, 
+                 "0" = 10^0,
+                 "K" = 10^3,
+                 "M" = 10^6,
+                 "B" = 10^9)
+```
+
+6. Create new columns with the numeric values of PROPDMGEXP and CROPDMGEXP (This part will take significantly long time to execute)
+```{R}
+StormData$PROPDMGEXPNEW = propDmgKey[as.character(StormData$PROPDMGEXP)]
+StormData$PROPDMGEXPNEW[which(is.na(StormData$PROPDMGEXPNEW))] = 10^0 
+
+StormData$CROPDMGEXPNEW = cropDmgKey[as.character(StormData$CROPDMGEXP)]
+StormData$CROPDMGEXPNEW[which(is.na(StormData$CROPDMGEXPNEW))] = 10^0 
+```
+
+7. Create new columns propCost and cropCost based on the new numeric value
+```{R}
+StormData$propCost = StormData$PROPDMG * StormData$PROPDMGEXPNEW
+StormData$cropCost = StormData$CROPDMG * StormData$CROPDMGEXPNEW
+StormData$totCost = StormData$propCost + StormData$cropCost
+```
+
+8. Re-assess the data
+```{R}
+str(StormData)
+head(StormData,2)
+```
+
+9. Create dataframe based on total econmoic loss cost and event type
+```{R}
+TotCostByEvt <- aggregate(totCost~EVTYPE, StormData, sum)
+summary(TotCostByEvt)
+```
+
+
+## Results 
+2. Which event causes most Fatalities?
+```{R}
+TotFatByEvt <- aggregate(FATALITIES~EVTYPE, StormData, sum)
+m <- max(TotFatByEvt$FATALITIES)
+TotFatByEvt$EVTYPE[which(TotFatByEvt$FATALITIES == m)]
+```
+3. Which event causes most Injuries?
+```{R}
+TotInjByEvt <- aggregate(INJURIES~EVTYPE, StormData, sum)
+m <- max(TotInjByEvt$INJURIES)
+TotInjByEvt$EVTYPE[which(TotInjByEvt$FATALITIES == m)]
+```
+
+4. Which even causes most total Harm (Fatalities and Injuries?
+```{R}
+StormData$ALL_HARM <- StormData$INJURIES + StormData$FATALITIES
+MaxAllHarm <- max(StormData$ALL_HARM)
+MaxAllHarm
+MaxHarmEvent <- StormData$EVTYPE[which(StormData$ALL_HARM == MaxAllHarm)]
+MaxHarmEvent
+```
+
+5. Plotting the Top Weather Event details of about number of injuries and fatalities
+```{R}
+library(ggplot2)
+fatal <- TotFatByEvt[order(TotFatByEvt$FATALITIES, decreasing = T), ]
+injury <- TotInjByEvt[order(TotInjByEvt$INJURIES, decreasing = T), ]
+
+plot1 <- ggplot(data=head(fatal,10), aes(x=reorder(EVTYPE, FATALITIES), y=FATALITIES)) + 
+    geom_bar(fill="brown",stat="identity")  + coord_flip() + 
+    labs(title="Top 10 Fatality - causing Events in US",x="Weather Event", y="Total Number of Fatalities")
+print(plot1)
+
+plot2 <- ggplot(data=head(injury,10), aes(x=reorder(EVTYPE, INJURIES), y=INJURIES)) + 
+    geom_bar(fill="orange",stat="identity")  + coord_flip() + 
+    labs(title="Top 10 Injury - causing Events in US",x="Weather Event", y="Total Number of Injuries") 
+print(plot2)
+```
+
+6. Which event causes most damage economically?
+```{R}
+maxcost = max(TotCostByEvt$totCost)
+TotCostByEvt$EVTYPE[which(TotCostByEvt$totCost == maxcost)]
+```
+
+10. Plotting Tornado Data. There are too many rows, we will subset and get few top.  Pick only data which is above the mean for better graph
+```{R}
+mean = mean(TotCostByEvt$totCost)
+TotCostByEvtShort <- TotCostByEvt[which(TotCostByEvt$totCost >= mean),]
+summary(TotCostByEvtShort)
+```
+
+11. Plot the top 10 events which causes harm
+```{R}
+library(ggplot2)
+cost <- TotCostByEvt[order(TotCostByEvt$totCost, decreasing = T), ]
+plot3 <- ggplot(data=head(cost,10), aes(x=reorder(EVTYPE, totCost), y=totCost)) + 
+    geom_bar(fill="yellow",stat="identity")  + coord_flip() + 
+    labs(title="Top 10 Economically harmfull  Events in US",x="Weather Event", y="Total Econmic Losses ($s)")
+print(plot3)
+```
+
